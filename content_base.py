@@ -64,7 +64,7 @@ if __name__ == "__main__":
 
     print("\n📌 Content-Based Recommendation System")
 
-    df = pd.read_csv("cleaned_data_final.csv")
+    df = pd.read_csv("clean_data.csv")
     query = input("\nEnter Product Name: ").strip()
 
     results = content_based_filtering(df, query)
