@@ -2,8 +2,14 @@ import pandas as pd
 import numpy as np
 
 def clean_data(file_path):
-    
+
     data = pd.read_csv(file_path)
+
+    # Remove accidental duplicate header rows
+    for col in data.columns:
+        data = data[data[col] != col]
+
+    data = data.reset_index(drop=True)
 
     # Fix invalid numeric IDs
     if 'ProdID' in data.columns:
@@ -60,14 +66,14 @@ def clean_data(file_path):
                 .str.strip()
                 .replace("", "Unknown")
             )
-            
-    # IMAGE URL CLEANING 
+
+    # IMAGE URL CLEANING
     if "ImageURL" in data.columns:
         data["ImageURL"] = (
             data["ImageURL"]
             .fillna("")
             .astype(str)
-            .str.split(r"\s*\|\s*")  # correct pipe handling
+            .str.split(r"\s*\|\s*")   # handle multiple URLs separated by |
             .str[0]
             .str.strip()
         )
@@ -86,10 +92,14 @@ def clean_data(file_path):
 
 
 if __name__ == "__main__":
-    cleaned_data = clean_data("clean_data.csv")
-    cleaned_data.to_csv("cleaned_data_final.csv", index=False)
+    file_path = "clean_data.csv"
 
-    print("✅ Data cleaned successfully")
+    cleaned_data = clean_data(file_path)
+
+    # ✅ OVERWRITE SAME FILE
+    cleaned_data.to_csv(file_path, index=False)
+
+    print("✅ Data cleaned and updated in clean_data.csv")
     print(f"📊 Final rows count: {len(cleaned_data)}")
 
 
