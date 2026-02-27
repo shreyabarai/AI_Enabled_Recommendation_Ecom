@@ -1,106 +1,74 @@
 import pandas as pd
 import numpy as np
 
-def clean_data(file_path):
 
-    data = pd.read_csv(file_path)
+def process_data(data: pd.DataFrame) -> pd.DataFrame:
 
-    # Remove accidental duplicate header rows
-    for col in data.columns:
-        data = data[data[col] != col]
+    # Standardize Column Names
+    if "User's ID" in data.columns:
+        data = data.rename(columns={"User's ID": "ID"})
 
-    data = data.reset_index(drop=True)
+    if "Review Count" in data.columns:
+        data = data.rename(columns={"Review Count": "ReviewCount"})
 
-    # Fix invalid numeric IDs
+    # Replace invalid values
     if 'ProdID' in data.columns:
         data['ProdID'] = data['ProdID'].replace(-2147483648, np.nan)
 
-    if "User's ID" in data.columns:
-        data["User's ID"] = data["User's ID"].replace(-2147483648, np.nan)
+    if 'ID' in data.columns:
+        data['ID'] = data['ID'].replace(-2147483648, np.nan)
 
-    # Drop rows with missing critical IDs (if present)
-    critical_ids = [c for c in ["User's ID", "ProdID"] if c in data.columns]
-    if critical_ids:
-        data = data.dropna(subset=critical_ids)
+    # Convert to numeric
+    if 'ID' in data.columns:
+        data['ID'] = pd.to_numeric(data['ID'], errors='coerce')
 
-    # Convert IDs to int
-    if "User's ID" in data.columns:
-        data["User's ID"] = data["User's ID"].astype("int64")
+    if 'ProdID' in data.columns:
+        data['ProdID'] = pd.to_numeric(data['ProdID'], errors='coerce')
 
-    if "ProdID" in data.columns:
-        data["ProdID"] = data["ProdID"].astype("int64")
+    # Drop missing IDs
+    data = data.dropna(subset=['ID', 'ProdID'])
 
-    # Review Count cleanup
-    if "Review Count" in data.columns:
-        data["Review Count"] = data["Review Count"].fillna(0).astype("int64")
+    # Remove zero IDs
+    data = data[(data['ID'] != 0) & (data['ProdID'] != 0)]
+
+    # Convert to int
+    data['ID'] = data['ID'].astype('int64')
+    data['ProdID'] = data['ProdID'].astype('int64')
+
+    # Clean Rating
+    if 'Rating' in data.columns:
+        data['Rating'] = pd.to_numeric(data['Rating'], errors='coerce')
+        data['Rating'] = data['Rating'].fillna(0)
+
+    # Clean ReviewCount
+    if 'ReviewCount' in data.columns:
+        data['ReviewCount'] = pd.to_numeric(
+            data['ReviewCount'], errors='coerce'
+        ).fillna(0).astype('int64')
 
     # Clean text columns
-    text_columns = ["Brand", "Description", "Tags", "Name"]
-    for col in text_columns:
+    for col in ['Category', 'Brand', 'Description', 'Tags', 'Name']:
         if col in data.columns:
-            data[col] = (
-                data[col]
-                .fillna("")
-                .astype(str)
-                .str.strip()
-            )
+            data[col] = data[col].fillna('').astype(str).str.strip()
 
-    # CATEGORY FIX - FILL MISSING WITH TAGS OR UNKNOWN
-    if "Category" in data.columns:
-        data["Category"] = (
-            data["Category"]
-            .fillna("")
+    # Clean ImageURL
+    if 'ImageURL' in data.columns:
+        data['ImageURL'] = (
+            data['ImageURL']
+            .fillna('')
             .astype(str)
-            .str.strip()
-        )
-
-        data.loc[data["Category"] == "", "Category"] = "Unknown"
-
-        if "Tags" in data.columns:
-            mask = data["Category"] == "Unknown"
-            data.loc[mask, "Category"] = (
-                data.loc[mask, "Tags"]
-                .fillna("")
-                .str.split(",")
-                .str[0]
-                .str.strip()
-                .replace("", "Unknown")
-            )
-
-    # IMAGE URL CLEANING
-    if "ImageURL" in data.columns:
-        data["ImageURL"] = (
-            data["ImageURL"]
-            .fillna("")
-            .astype(str)
-            .str.split(r"\s*\|\s*")   # handle multiple URLs separated by |
+            .str.split('|')
             .str[0]
             .str.strip()
         )
 
-    # REMOVE BLANK / BROKEN ROWS
-    essential_cols = [c for c in ["Name", "Brand", "ImageURL"] if c in data.columns]
+    # Drop unwanted column
+    if 'Unnamed: 0' in data.columns:
+        data = data.drop(columns=['Unnamed: 0'])
 
-    if essential_cols:
-        for col in essential_cols:
-            data = data[data[col] != ""]
-
-    # Remove rows that are mostly empty
-    data = data.dropna(thresh=int(len(data.columns) * 0.4))
+    data.reset_index(drop=True, inplace=True)
 
     return data
-
-
-if __name__ == "__main__":
-    file_path = "clean_data.csv"
-
-    cleaned_data = clean_data(file_path)
-
-    # ✅ OVERWRITE SAME FILE
-    cleaned_data.to_csv(file_path, index=False)
-
-    print("✅ Data cleaned and updated in clean_data.csv")
-    print(f"📊 Final rows count: {len(cleaned_data)}")
 
 
 
