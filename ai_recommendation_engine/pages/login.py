@@ -1,138 +1,108 @@
 import reflex as rx
+from ..state.user_state import UserState
+from ..state.product_state import ProductState
+
+class LoginState(rx.State):
+    def login(self):
+        # Mock login
+        return [ProductState.load_products, rx.redirect("/home")]
 
 def login():
-    return rx.hstack(
-
-        rx.script("""
-        if (!window.firebaseLoaded) {
-
-        const script1 = document.createElement('script');
-        script1.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js";
-        document.head.appendChild(script1);
-
-        const script2 = document.createElement('script');
-        script2.src = "https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js";
-        document.head.appendChild(script2);
-
-        script2.onload = () => {
-
-            // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-            const firebaseConfig = {
-            apiKey: "AIzaSyCzOZMCq2nWDjIdbZv6e9p2yjZ3zXzlURQ",
-            authDomain: "ai-recommendation-engine-sb.firebaseapp.com",
-            projectId: "ai-recommendation-engine-sb",
-            storageBucket: "ai-recommendation-engine-sb.firebasestorage.app",
-            messagingSenderId: "546445701333",
-            appId: "1:546445701333:web:e5051f73b9eba741fdf25c",
-            measurementId: "G-MSWJGPWDFF"
-            };
-
-            firebase.initializeApp(firebaseConfig);
-
-            // ✅ DEFINE FUNCTIONS AFTER LOAD
-            window.loginUser = async function() {
-                const email = document.getElementById("email").value;
-                const password = document.getElementById("password").value;
-
-                try {
-                    await firebase.auth().signInWithEmailAndPassword(email, password);
-                    alert("Login Success");
-                    window.location.href = "/home";
-                } catch (error) {
-                    alert(error.message);
-                }
-            };
-
-            window.signupUser = async function() {
-                const email = document.getElementById("email").value;
-                const password = document.getElementById("password").value;
-
-                try {
-                    await firebase.auth().createUserWithEmailAndPassword(email, password);
-                    alert("Signup Success");
-                } catch (error) {
-                    alert(error.message);
-                }
-            };
-
-            window.firebaseLoaded = true;
-        };
-        }
-        """),
-        
-        # 🔵 LEFT SIDE
-        rx.box(
+    return rx.box(
+        rx.hstack(
+            # Left side: Image/Branding
             rx.vstack(
-                rx.hstack(
-                    rx.text("✦", color="#34d399", font_size="1.5em"),
-                    rx.text("ShopHub", font_weight="bold", font_size="1.2em"),
+                rx.box(
+                    rx.icon(tag="shopping-bag", size=40, color="white"),
+                    padding="1rem",
+                    bg="#10b981",
+                    border_radius="1.5rem",
+                    margin_bottom="2rem"
                 ),
-
-                rx.heading(
-                    "Discover products you'll love.",
-                    size="7"
-                ),
-
-                rx.text(
-                    "AI-powered recommendations that learn your style. Join thousands of happy customers.",
-                    color="gray"
-                ),
-
-                rx.hstack(
-                    rx.vstack(rx.text("2M+"), rx.text("Users", color="gray")),
-                    rx.vstack(rx.text("50K+"), rx.text("Products", color="gray")),
-                    rx.vstack(rx.text("4.9★"), rx.text("Rating", color="gray")),
-                    spacing="6"
-                ),
-
-                spacing="6",
-                align="start"
+                rx.heading("ShopHub AI", size="9", weight="bold", color="white"),
+                rx.text("Your personalized shopping destination powered by intelligent recommendations.", size="4", color="rgba(255,255,255,0.8)", text_align="center", max_width="400px"),
+                width="50%",
+                height="100vh",
+                bg="#111827",
+                padding="4rem",
+                align_items="center",
+                justify_content="center",
+                display=rx.cond(rx.breakpoints({"sm": "none", "md": "flex"}), "flex", "none")
             ),
-            width="50%",
-            height="100vh",
-            padding="4em",
-            color="white",
-            background="radial-gradient(circle at top left, #0f172a, #020617)"
-        ),
-
-        # ⚪ RIGHT SIDE (FORM)
-        rx.center(
-            rx.box(
+            
+            # Right side: Form
+            rx.vstack(
                 rx.vstack(
-                    rx.heading("Create account", size="6"),
-
-                    rx.text("Start your personalized shopping journey", color="gray"),
-
-                    # ✅ IMPORTANT: IDs added
-                    rx.input(id="name", placeholder="Full Name", size="3"),
-                    rx.input(id="email", placeholder="Email", size="3"),
-                    rx.input(id="password", placeholder="Password", type="password", size="3"),
-
-                    # 🔐 SIGNUP BUTTON
-                    rx.button(
-                        "Create Account →",
-                        width="100%",
-                        background="#10b981",
-                        color="white",
-                        _hover={"background": "#059669"},
-                        on_click=rx.call_script("window.signupUser && window.signupUser()")
-                    ),
-
-                    # 🔐 LOGIN BUTTON
-                    rx.button(
-                        "Login",
-                        width="100%",
-                        variant="outline",
-                        on_click=rx.call_script("window.loginUser && window.loginUser()")
-                    ),
-
-                    spacing="4",
-                    width="300px"
+                    rx.heading("Welcome Back", size="8", weight="bold", color="#111827"),
+                    rx.text("Enter your credentials to access your account", color="#6b7280", size="3"),
+                    align_items="start",
+                    spacing="2",
+                    margin_bottom="3rem"
                 ),
-                padding="2em"
+                
+                rx.vstack(
+                    rx.vstack(
+                        rx.text("Email Address", size="2", weight="medium", color="#374151"),
+                        rx.input(
+                            placeholder="name@example.com",
+                            on_change=UserState.set_email,
+                            width="100%",
+                            size="3",
+                            radius="large",
+                            bg="#f9fafb"
+                        ),
+                        spacing="2",
+                        width="100%",
+                        align_items="start"
+                    ),
+                    rx.vstack(
+                        rx.text("Password", size="2", weight="medium", color="#374151"),
+                        rx.input(
+                            placeholder="••••••••",
+                            type="password",
+                            on_change=UserState.set_password,
+                            width="100%",
+                            size="3",
+                            radius="large",
+                            bg="#f9fafb"
+                        ),
+                        spacing="2",
+                        width="100%",
+                        align_items="start",
+                        margin_top="4"
+                    ),
+                    rx.button(
+                        "Sign In",
+                        on_click=LoginState.login,
+                        width="100%",
+                        size="4",
+                        bg="#10b981",
+                        color="white",
+                        radius="large",
+                        margin_top="6",
+                        _hover={"bg": "#059669"}
+                    ),
+                    rx.hstack(
+                        rx.text("Don't have an account?", color="#6b7280", size="2"),
+                        rx.link("Create Account", href="/signup", color="#10b981", weight="bold", size="2"),
+                        spacing="2",
+                        margin_top="4"
+                    ),
+                    width="100%",
+                    max_width="400px"
+                ),
+                width=rx.cond(rx.breakpoints({"sm": "100%", "md": "50%"}), "100%", "50%"),
+                height="100vh",
+                padding="4rem",
+                align_items="center",
+                justify_content="center",
+                bg="white"
             ),
-            width="50%",
-            height="100vh",
-            background="white"
+            width="100%",
+            spacing="0"
         ),
+        on_mount=ProductState.load_products,
+        width="100%",
+        height="100vh",
+        overflow="hidden"
     )

@@ -10,7 +10,7 @@ def products():
         rx.heading("All Products", size="7"),
 
         rx.grid(
-            rx.foreach(ProductState.products, product_card),
+            rx.foreach(ProductState.filtered_products, product_card),
             columns="4",
             spacing="6"
         ),

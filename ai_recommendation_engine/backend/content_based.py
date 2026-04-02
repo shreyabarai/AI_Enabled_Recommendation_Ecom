@@ -84,45 +84,99 @@ def content_based_filtering(df, query, top_n=5):
 
     return results[:top_n]
 
-def get_user_recommendations(history):
+def get_user_recommendations(history, df_all=None):
+    """
+    Get content-based recommendations based on user history.
+    Uses TF-IDF and Cosine Similarity for robust matching.
+    """
     import pandas as pd
+    from sklearn.feature_extraction.text import TfidfVectorizer
+    from sklearn.metrics.pairwise import cosine_similarity
+    import random
 
-    df = pd.read_csv("clean_data.csv")
+    if df_all is None:
+        try:
+            df = pd.read_csv("clean_data.csv")
+        except:
+            return []
+    else:
+        df = df_all.copy()
 
-    # If no history → default recommendations
+    # Clean data
+    df.columns = [c.strip() for c in df.columns]
+    df = df.fillna("")
+
+    # If no history → return popular/random products
     if not history:
-        return [
-            {
-                "id": i,
-                "name": str(row["Name"]),
-                "image": str(row["ImageURL"]),
-                "desc": str(row.get("Description", "")),
-                "price": 500
-            }
-            for i, row in df.head(6).iterrows()
-        ]
+        # Just return first few products formatted correctly
+        recs = df.head(8)
+        return _format_results(recs)
 
-    # Match products user interacted with
-    matched = df[df["Name"].isin(history)]
+    # Combine text for TF-IDF
+    # We use Name, Category, and Description for better similarity
+    df["combined_features"] = df["Name"].astype(str) + " " + \
+                              df["Category"].astype(str) + " " + \
+                              df["Description"].astype(str)
 
-    if matched.empty:
-        return df.head(6).to_dict("records")
+    tfidf = TfidfVectorizer(stop_words="english")
+    tfidf_matrix = tfidf.fit_transform(df["combined_features"])
 
-    # Use category-based similarity
-    category = matched.iloc[0]["category"]
+    # Create a profile for the user based on their history
+    # We search for the indices of products in the history
+    history_indices = []
+    for product_name in history:
+        idx = df[df["Name"] == product_name].index
+        if not idx.empty:
+            history_indices.append(idx[0])
 
-    recs = df[df["category"] == category].head(6)
+    if not history_indices:
+        # If none of the history products found, return random
+        return _format_results(df.sample(min(len(df), 8)))
 
-    return [
-        {
+    # Average the TF-IDF vectors of the products in the user's history
+    user_profile = tfidf_matrix[history_indices].mean(axis=0)
+    
+    # Convert to array for cosine_similarity
+    import numpy as np
+    user_profile = np.asarray(user_profile)
+
+    # Calculate cosine similarity between user profile and all products
+    cosine_sim = cosine_similarity(user_profile, tfidf_matrix).flatten()
+
+    # Get indices of products with highest similarity
+    # Exclude products already in history
+    related_indices = cosine_sim.argsort()[::-1]
+    
+    top_indices = []
+    history_names = [name.lower() for name in history]
+    
+    for idx in related_indices:
+        if df.iloc[idx]["Name"].lower() not in history_names:
+            top_indices.append(idx)
+        if len(top_indices) >= 8:
+            break
+
+    recs = df.iloc[top_indices]
+    return _format_results(recs)
+
+def _format_results(df_recs):
+    """Helper to format dataframe rows into the dict structure used by the app."""
+    import random
+    results = []
+    for i, row in df_recs.iterrows():
+        results.append({
             "id": i,
-            "name": str(row["Name"]),
-            "image": str(row["ImageURL"]),
+            "name": str(row.get("Name", "Unknown")),
+            "image": str(row.get("ImageURL", "")),
             "desc": str(row.get("Description", "")),
-            "price": 500
-        }
-        for i, row in recs.iterrows()
-    ]
+            "category": str(row.get("Category", "")).split(",")[0].strip().title(),
+            "price": random.randint(300, 5000),
+            "rating": str(round(random.uniform(3.5, 5.0), 1)),
+            "reviews": str(random.randint(50, 10000)),
+            "discount": str(random.randint(10, 40)),
+            "badge_text": random.choice(["DEAL", "BEST SELLER", "NEW", "TRENDING"]),
+        })
+    return results
 
 # 🔹 CLI testing (optional)
 if __name__ == "__main__":
