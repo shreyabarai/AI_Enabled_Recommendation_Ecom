@@ -1,6 +1,6 @@
 # AI_Enabled_Recommendation_Ecom
 
-![Python](https://img.shields.io/badge/-Python-blue?logo=python&logoColor=white) ![License](https://img.shields.io/badge/license-MIT-green)
+![Python](https://img.shields.io/badge/-Python-blue?logo=python&logoColor=white)
 
 ## 📝 Description
 
